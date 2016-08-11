@@ -1,0 +1,34 @@
+{
+  "name": "liquidador",
+  "version": "1.0.0",
+  "description": "Liquidacion de Pasavantes, Giro de Buques y Tasa a las Cargas",
+  "main": "main.js",
+  "scripts": {
+    "test": "test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reyesdiego/Liquidador.git"
+  },
+  "keywords": [
+    "Liquidador"
+  ],
+  "author": "Diego Reyes",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/reyesdiego/Liquidador/issues"
+  },
+  "homepage": "https://github.com/reyesdiego/Liquidador#readme",
+  "dependencies": {
+    "async": "^2.0.1",
+    "body-parser": "^1.15.2",
+    "compression": "^1.6.2",
+    "emailjs": "^1.0.5",
+    "express": "^4.14.0",
+    "jsonwebtoken": "^7.1.9",
+    "method-override": "^2.3.6",
+    "moment": "^2.14.1",
+    "mongoose": "^4.5.8",
+    "winston": "^1.0.1"
+  }
+}

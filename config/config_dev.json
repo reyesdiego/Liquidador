@@ -1,0 +1,19 @@
+{
+    "token_timeout": "1 day",
+    "container_checking": false,
+    "log": {
+        "path": "log/",
+        "filename": "nohup.out",
+        "toConsole": true,
+        "toFile": false
+    },
+    "mongo": {
+        "url": "mongodb://localhost:27017/free"
+    },
+    "mongo_url_log": "mongodb://localhost:27017/logging",
+    "mongo_opts_log": {
+        "user": "admin",
+        "pass": "Pt trend 54",
+        "auth": {"authdb": "admin"}
+    }
+}

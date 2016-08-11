@@ -1,0 +1,25 @@
+{
+    "token_timeout": 60,
+    "container_checking": false,
+    "log": {
+        "path": "log/",
+        "filename": "nohup.out",
+        "toConsole": false,
+        "toFile": true
+    },
+    "mongo": {
+        "url": "mongodb://10.1.0.60:27017/free",
+        "options": {
+            "user": "admin",
+            "pass": "Pt trend 54",
+            "auth": {"authdb": "admin"},
+            "server": { "socketOptions": { "keepAlive": 1, "connectTimeoutMS": 30000 }}
+        }
+    },
+    "mongo_url_log": "mongodb://10.1.0.60:27017/logging",
+    "mongo_opts_log": {
+        "user": "admin",
+        "pass": "Pt trend 54",
+        "auth": {"authdb": "admin"}
+    }
+}
