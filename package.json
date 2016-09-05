@@ -25,10 +25,14 @@
     "compression": "^1.6.2",
     "emailjs": "^1.0.5",
     "express": "^4.14.0",
+    "express-validator": "^2.20.8",
     "jsonwebtoken": "^7.1.9",
+    "linq": "^3.0.5",
     "method-override": "^2.3.6",
     "moment": "^2.14.1",
     "mongoose": "^4.5.8",
+    "oracledb": "^1.10.1",
+    "response-time": "^2.3.1",
     "winston": "^1.0.1"
   }
 }
