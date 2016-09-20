@@ -8,6 +8,9 @@ module.exports = (log, oracle) => {
     var express = require('express');
     var router = express.Router();
 
+    var Pasavante = require('../lib/pasavante.js');
+    var pasavante = new Pasavante(oracle);
+
     let validatePayment = (req, res, next) => {
         req.checkBody(
             {
@@ -27,11 +30,12 @@ module.exports = (log, oracle) => {
                     notEmpty: {errorMessage: "fecha_hasta is required"},
                     isDate: {
                         errorMessage: "fecha_hasta must be a valid date"}},
-                year: {
-                    notEmpty: {errorMessage: "year is required"},
-                    isInt: {errorMessage: "year must be Integer"}
+                buque_trn: {
+                    notEmpty: {errorMessage: "buque_trn is required"},
+                    isInt: {errorMessage: "buque_trn must be Integer"}
                 },
                 movimientos: {
+                    notEmpty: {errorMessage: "movimientos is required"},
                     isArray: {errorMessage: "movimientos must be an Array"}
                 }
             });
@@ -77,14 +81,11 @@ module.exports = (log, oracle) => {
 
     let addPayment = (req, res) => {
         var async = require('async');
+        var moment = require('moment');
         var task,
             tasks = [];
 
         var paymentBody = req.body;
-        log.logger.info('%j',paymentBody);
-        var Pasavante = require('../lib/pasavante.js');
-        var pasavante = new Pasavante(oracle);
-
 
         paymentBody.movimientos.forEach(item => {
             task = (callback) => {
@@ -105,58 +106,84 @@ module.exports = (log, oracle) => {
             var rates = [];
             var firstSitio;
 
-            data.forEach(item => {
-                item.forEach(rate => {
-                    rates.push(rate);
-                });
-            });
+            if (err) {
+                var errMsg = {
+                    status: "ERROR",
+                    data: err
+                };
+                log.logger.error(errMsg);
+                res.status(500).send(errMsg);
+            } else {
+                try {
 
-            firstSitio = rates[0].ID_TERMINAL;
+                    data.forEach(item => {
+                        item.forEach(rate => {
+                            rates.push(rate);
+                        });
+                    });
+                    if (rates.length === 0) {
+                        log.logger.error("INS Liqui Pasavante, No se encontraron Tarifas para los datos requeridos: %j ", JSON.stringify(paymentBody));
+                        res.status(500).send({
+                            status: "ERROR",
+                            message: "No se encontraron Tarifas para los datos requeridos."
+                        });
+                    } else {
+                        firstSitio = rates[0].ID_TERMINAL;
 
-            var liq_header = {
-                cliente: paymentBody.cliente,
-                seccion: firstSitio,
-                operacion: 8,
-                documento: 11,
-                buque_id: paymentBody.buque_imo,
-                fecha_desde: paymentBody.fecha_desde,
-                fecha_hasta: paymentBody.fecha_hasta,
-                documento_anio: paymentBody.year,
-                documento_nro: paymentBody.documento_nro,
-                fecha_preliquidacion: paymentBody.fecha_fin,
-                erp_nro_liquidacion: null,
-                erp_nro_factura: null,
-                estado: 9
-            };
+                        var liq_header = {
+                            cliente: paymentBody.cliente,
+                            seccion: firstSitio,
+                            operacion: 8,
+                            documento: 11,
+                            buque_id: paymentBody.buque_id,
+                            fecha_desde: paymentBody.fecha_desde,
+                            fecha_hasta: paymentBody.fecha_hasta,
+                            documento_anio: moment(paymentBody.fecha_desde).year(),
+                            documento_nro: paymentBody.documento_nro,
+                            fecha_preliquidacion: paymentBody.fecha_fin,
+                            erp_nro_liquidacion: null,
+                            erp_nro_factura: null,
+                            estado: 9
+                        };
 
-            var liq_detail = rates.map(rate => ({
-                id_tarifa: rate.TARIFA,
-                unitario: rate.VALOR_TARIFA,
-                cantidad1: paymentBody.buque_trn,
-                cantidad2: null
-            }));
+                        var liq_detail = rates.map(rate => ({
+                            id_tarifa: rate.ID_TARIFA,
+                            unitario: rate.VALOR_TARIFA,
+                            cantidad1: paymentBody.buque_trn,
+                            cantidad2: null
+                        }));
 
-            liq_header.detail = liq_detail;
+                        liq_header.detail = liq_detail;
 
-            payment.add(liq_header)
-                .then(dataPayment =>{
-                    res.status(200).send(dataPayment);
-                })
-                .catch(err => {
-                    res.status(500).send(err);
-                });
+                        payment.add(liq_header)
+                            .then(dataPayment =>{
+                                log.logger.info("INS Liqui Pasavante %j", dataPayment);
+                                res.status(200).send(dataPayment);
+                            })
+                            .catch(err => {
+                                log.logger.error("INS Liqui Pasavante %s", err.message);
+                                res.status(500).send(err);
+                            });
+                    }
+                }
+                catch (e) {
+                    var errMsg = {
+                        status: "ERROR",
+                        message: e.message
+                    };
+                    log.logger.error(errMsg);
+                    res.status(500).send(errMsg);
+                }
+            }
         });
     };
 
     let addPasavante = (req, res) => {
         var pasavanteBody = req.body;
-        log.logger.info(pasavanteBody);
-        var Pasavante = require('../lib/pasavante.js');
-        var pasavante = new Pasavante(oracle);
 
         pasavante.add(pasavanteBody)
             .then(data => {
-                res.status(500).send(data);
+                res.status(200).send(data);
             })
             .catch(err => {
                 log.logger.error(err);
@@ -164,8 +191,35 @@ module.exports = (log, oracle) => {
             });
     };
 
+    let disablePasavante = (req, res) => {
+        var pasavanteId = req.params.id;
+
+        pasavante.disable(pasavanteId)
+            .then(data => {
+                res.status(200).send(data);
+            })
+            .catch(err => {
+                log.logger.error(err);
+                res.status(500).send(err);
+            });
+    };
+
+    let getAll = (req, res) => {
+
+        pasavante.getAll()
+            .then(data => {
+                res.status(200).send(data);
+            })
+            .catch(err => {
+                log.logger.error(err);
+                res.status(500).send(err);
+            });
+    }
+
     router.post('/liquidacion', validatePayment, addPayment);
     router.post('/pasavante', validatePasavante, addPasavante);
+    router.put('/pasavante/disable/:id', disablePasavante);
+    router.get('/', getAll);
 
     return router;
 };

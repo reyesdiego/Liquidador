@@ -31,6 +31,9 @@ module.exports = function (app, log, oracle) {
     var payment = require("./payment.js")(log, oracle);
     app.use('/payments', payment);
 
+    var rate = require("./rate.js")(log, oracle);
+    app.use('/rates', rate);
+
     app.get('/', (req, res) => {
         res.status(200).send("Liquidador 1.0 - Administración General de Puertos de Buenos Aires - Diego Reyes\n");
     });

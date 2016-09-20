@@ -80,7 +80,6 @@ module.exports = (log, oracle) => {
 
     let addPayment = (req, res) => {
         var paymentBody = req.body;
-        log.logger.info(paymentBody);
         var Patente = require('../lib/patente.js');
         var patente = new Patente(oracle);
 
@@ -109,16 +108,19 @@ module.exports = (log, oracle) => {
                 };
 
                 var liq_detail = rates.map(rate => ({
-                    tarifa: rate.ID_TARIFA,
+                    id_tarifa: rate.ID_TARIFA,
                     unitario: rate.VALOR_TARIFA,
                     cantidad1: paymentBody.buque_trn,
-                    cantidad2: null
+                    cantidad2: null,
+                    cotizacion_fecha: rate.FECHA_TARIFA,
+                    cotizacion_tarifa: rate.VALOR_TARIFA
                 }));
 
                 liq_header.detail = liq_detail;
 
                 payment.add(liq_header)
                     .then(dataPayment =>{
+                        log.logger.info(dataPayment);
                         res.status(200).send(dataPayment);
                     })
                     .catch(err => {
@@ -127,6 +129,7 @@ module.exports = (log, oracle) => {
                             message: err.message,
                             data: err
                         };
+                        log.logger.error("Patente INS - %s, %j", result.message, JSON.stringify(paymentBody));
                         res.status(500).send(result);
                     });
         })
@@ -150,6 +153,19 @@ module.exports = (log, oracle) => {
             });
     };
 
+    let disablePatente = (req, res) => {
+        var patenteId = req.params.id;
+
+        patente.disable(patenteId)
+            .then(data => {
+                res.status(200).send(data);
+            })
+            .catch(err => {
+                log.logger.error(err);
+                res.status(500).send(err);
+            });
+    };
+
     let getAll = (req, res) => {
 
         patente.getAll()
@@ -164,6 +180,7 @@ module.exports = (log, oracle) => {
 
     router.post('/liquidacion', validatePayment, addPayment);
     router.post('/patente', validatePatente, addPatente);
+    router.put('/patente/disable/:id', disablePatente);
     router.get('/', getAll);
 
     return router;

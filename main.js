@@ -25,7 +25,7 @@ var configDB = {
 var http = require("http");
 var express = require("express");
 var expressValidator = require("express-validator");
-var compress = require('compression');
+//var compress = require('compression');
 var methodOverride = require('method-override'),
     bodyParser = require('body-parser'),
     responseTime = require("response-time");
@@ -37,9 +37,10 @@ var app = express();
 var server;
 var port = 8099;
 
-app.use(compress({
-    level : 8
-}));
+//app.use(compress({
+//    level : 1
+//}));
+
 app.use(bodyParser.json());
 app.use(expressValidator({
     customValidators: {
@@ -83,6 +84,7 @@ server.on('error', (err) => {
 
 oracle.createPool(configDB)
     .then(pool => {
+        log.logger.info("Oracle Connected to Database. Versión %s", oracle.oracledb.oracleClientVersion);
         require("./routes/router.js")(app, log, oracle);
         server.listen(port, () => {
             log.logger.info("#%s Nodejs %s Running on %s://localhost:%s", process.pid, process.version, 'http', port);
@@ -90,6 +92,7 @@ oracle.createPool(configDB)
     })
     .catch(err => {
         log.logger.error(err);
+        process.exit(1);
     });
 
 process.on('exit', () => {
