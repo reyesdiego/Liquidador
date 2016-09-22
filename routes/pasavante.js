@@ -125,7 +125,7 @@ module.exports = (log, oracle) => {
                         log.logger.error("INS Liqui Pasavante, No se encontraron Tarifas para los datos requeridos: %j ", JSON.stringify(paymentBody));
                         res.status(500).send({
                             status: "ERROR",
-                            message: "No se encontraron Tarifas para los datos requeridos."
+                            message: "No se encuentra el Tarifario para el Pasavante requerido."
                         });
                     } else {
                         firstSitio = rates[0].ID_TERMINAL;

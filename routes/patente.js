@@ -91,7 +91,15 @@ module.exports = (log, oracle) => {
 
                 var rates = data.data;
 
-                var liq_header = {
+                if (rates.length === 0) {
+                    log.logger.error("INS Liqui Patente, No se encontraron Tarifas para los datos requeridos: %j ", JSON.stringify(paymentBody));
+                    res.status(500).send({
+                        status: "ERROR",
+                        message: "No se encuentra el Tarifario para la Patente requerida."
+                    });
+                } else {
+
+                    var liq_header = {
                     cliente: paymentBody.cliente,
                     seccion: paymentBody.seccion,
                     operacion: 9,
@@ -132,6 +140,7 @@ module.exports = (log, oracle) => {
                         log.logger.error("Patente INS - %s, %j", result.message, JSON.stringify(paymentBody));
                         res.status(500).send(result);
                     });
+                }
         })
         .catch(err => {
                 log.logger.error(err);
