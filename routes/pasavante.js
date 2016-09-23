@@ -82,6 +82,7 @@ module.exports = (log, oracle) => {
     let addPayment = (req, res) => {
         var async = require('async');
         var moment = require('moment');
+        var Enumerable = require('linq');
         var task,
             tasks = [];
 
@@ -146,6 +147,23 @@ module.exports = (log, oracle) => {
                             estado: 9
                         };
 
+                        var total = Enumerable.from(rates)
+                            .where(x=>(x.MINIMO===0))
+                            .select(x=> (paymentBody.buque_trn * x.VALOR_TARIFA))
+                            .sum('x=>x');
+
+                        var minimo = Enumerable.from(rates)
+                            .where(x=>(x.MINIMO===1))
+                            .toArray();
+                        if (minimo.length>0) {
+                            minimo = minimo[0];
+
+                            if (minimo.VALOR_TARIFA > total) {
+                                minimo.VALOR_TARIFA = minimo.VALOR_TARIFA - total;
+                                total += minimo.VALOR_TARIFA;
+                            }
+                        }
+
                         var liq_detail = rates.map(rate => ({
                             id_tarifa: rate.ID_TARIFA,
                             unitario: rate.VALOR_TARIFA,
@@ -158,6 +176,7 @@ module.exports = (log, oracle) => {
                         payment.add(liq_header)
                             .then(dataPayment =>{
                                 log.logger.info("INS Liqui Pasavante %j", dataPayment);
+                                dataPayment.data.TOTAL = total;
                                 res.status(200).send(dataPayment);
                             })
                             .catch(err => {

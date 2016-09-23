@@ -82,6 +82,7 @@ module.exports = (log, oracle) => {
         var paymentBody = req.body;
         var Patente = require('../lib/patente.js');
         var patente = new Patente(oracle);
+        var Enumerable = require('linq');
 
         patente.getTarifas(paymentBody.id_tipo_embarcacion, paymentBody.fecha_desde)
         .then(data => {
@@ -99,39 +100,61 @@ module.exports = (log, oracle) => {
                     });
                 } else {
 
-                    var liq_header = {
-                    cliente: paymentBody.cliente,
-                    seccion: paymentBody.seccion,
-                    operacion: 9,
-                    documento: 12,
-                    buque_id: paymentBody.buque_id,
-                    fecha_desde: paymentBody.fecha_desde,
-                    fecha_hasta: paymentBody.fecha_hasta,
-                    documento_anio: paymentBody.year,
-                    documento_nro: paymentBody.documento_nro,
-                    fecha_preliquidacion: paymentBody.fecha_fin,
-                    erp_nro_liquidacion: null,
-                    erp_nro_factura: null,
-                    estado: 9
-                };
+                    let liq_header = {
+                        cliente: paymentBody.cliente,
+                        seccion: paymentBody.seccion,
+                        operacion: 9,
+                        documento: 12,
+                        buque_id: paymentBody.buque_id,
+                        fecha_desde: paymentBody.fecha_desde,
+                        fecha_hasta: paymentBody.fecha_hasta,
+                        documento_anio: paymentBody.year,
+                        documento_nro: paymentBody.documento_nro,
+                        fecha_preliquidacion: paymentBody.fecha_fin,
+                        erp_nro_liquidacion: null,
+                        erp_nro_factura: null,
+                        estado: 9
+                    };
 
-                var liq_detail = rates.map(rate => ({
-                    id_tarifa: rate.ID_TARIFA,
-                    unitario: rate.VALOR_TARIFA,
-                    cantidad1: paymentBody.buque_trn,
-                    cantidad2: null,
-                    cotizacion_fecha: rate.FECHA_TARIFA,
-                    cotizacion_tarifa: rate.VALOR_TARIFA
-                }));
+                    var total = Enumerable.from(rates)
+                            .where(x=>(x.MINIMO===0))
+                            .select(x=> (paymentBody.buque_trn * x.VALOR_TARIFA))
+                            .sum('x=>x');
 
-                liq_header.detail = liq_detail;
+                    var minimo = Enumerable.from(rates)
+                        .where(x=>(x.MINIMO===1))
+                        .toArray();
+                    if (minimo.length>0) {
+                        minimo = minimo[0];
 
-                payment.add(liq_header)
-                    .then(dataPayment =>{
-                        log.logger.info(dataPayment);
-                        res.status(200).send(dataPayment);
-                    })
-                    .catch(err => {
+                        if (minimo.VALOR_TARIFA > total) {
+                            minimo.VALOR_TARIFA = minimo.VALOR_TARIFA - total;
+                            total += minimo.VALOR_TARIFA;
+                        }
+                    }
+
+                    let liq_detail = rates.map(rate => {
+
+                        var result = {
+                            id_tarifa: rate.ID_TARIFA,
+                            unitario: rate.VALOR_TARIFA,
+                            cantidad1: paymentBody.buque_trn,
+                            cantidad2: null,
+                            cotizacion_fecha: rate.FECHA_TARIFA,
+                            cotizacion_tarifa: rate.VALOR_TARIFA
+                        };
+                        return result;
+                    });
+
+                    liq_header.detail = liq_detail;
+
+                    payment.add(liq_header)
+                        .then(dataPayment => {
+                            log.logger.info("INS Liqui Patente %j", dataPayment);
+                            dataPayment.data.TOTAL = total;
+                            res.status(200).send(dataPayment);
+                        })
+                        .catch(err => {
                         var result = {
                             status: 'ERROR',
                             message: err.message,
