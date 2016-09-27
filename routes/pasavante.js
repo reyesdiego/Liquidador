@@ -210,19 +210,6 @@ module.exports = (log, oracle) => {
             });
     };
 
-    let disablePasavante = (req, res) => {
-        var pasavanteId = req.params.id;
-
-        pasavante.disable(pasavanteId)
-            .then(data => {
-                res.status(200).send(data);
-            })
-            .catch(err => {
-                log.logger.error(err);
-                res.status(500).send(err);
-            });
-    };
-
     let getAll = (req, res) => {
 
         pasavante.getAll()
@@ -235,9 +222,39 @@ module.exports = (log, oracle) => {
             });
     }
 
+    let putPasavante = (req, res) => {
+        var pasavanteId = req.params.id;
+        var put = req.params.put;
+        var params = req.body;
+        params.id = pasavanteId;
+        var prom;
+        var moment = require('moment');
+
+        if (params.fecha_inicio) {
+            params.fecha_inicio = moment(params.fecha_inicio, "YYYY-MM-DD").format("YYYY-MM-DD");
+        }
+        if (params.fecha_fin) {
+            params.fecha_fin = moment(params.fecha_fin, "YYYY-MM-DD").format("YYYY-MM-DD");
+        }
+
+        if (put==='disable') {
+            prom = pasavante.disable(pasavanteId);
+        } else if (put==='dates') {
+            prom = pasavante.setDates(params);
+        }
+
+        prom.then(data => {
+            res.status(200).send(data);
+        })
+            .catch(err => {
+                log.logger.error(err);
+                res.status(500).send(err);
+            });
+    };
+
     router.post('/liquidacion', validatePayment, addPayment);
     router.post('/pasavante', validatePasavante, addPasavante);
-    router.put('/pasavante/disable/:id', disablePasavante);
+    router.put('/pasavante/:put/:id', putPasavante);
     router.get('/', getAll);
 
     return router;

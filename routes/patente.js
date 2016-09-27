@@ -185,11 +185,28 @@ module.exports = (log, oracle) => {
             });
     };
 
-    let disablePatente = (req, res) => {
+    let putPatente = (req, res) => {
         var patenteId = req.params.id;
+        var put = req.params.put;
+        var params = req.body;
+        params.id = patenteId;
+        var prom;
+        var moment = require('moment');
 
-        patente.disable(patenteId)
-            .then(data => {
+        if (params.fecha_inicio) {
+            params.fecha_inicio = moment(params.fecha_inicio, "YYYY-MM-DD").format("YYYY-MM-DD");
+        }
+        if (params.fecha_fin) {
+            params.fecha_fin = moment(params.fecha_fin, "YYYY-MM-DD").format("YYYY-MM-DD");
+        }
+
+        if (put==='disable') {
+            prom = patente.disable(patenteId);
+        } else if (put==='dates') {
+            prom = patente.setDates(params);
+        }
+
+        prom.then(data => {
                 res.status(200).send(data);
             })
             .catch(err => {
@@ -212,7 +229,7 @@ module.exports = (log, oracle) => {
 
     router.post('/liquidacion', validatePayment, addPayment);
     router.post('/patente', validatePatente, addPatente);
-    router.put('/patente/disable/:id', disablePatente);
+    router.put('/patente/:put/:id', putPatente);
     router.get('/', getAll);
 
     return router;
