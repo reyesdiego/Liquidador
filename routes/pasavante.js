@@ -79,6 +79,20 @@ module.exports = (log, oracle) => {
         }
     };
 
+    let validateMinRate = (req, res, next) => {
+        var pasavanteBody = req.body;
+
+        pasavante.minRateControl(pasavanteBody)
+            .then( () => {
+                next();
+            })
+            .catch(err => {
+                res.status(400).send({
+                    status: "ERROR",
+                    message: err.message});
+            })
+    };
+
     let addPayment = (req, res) => {
         var async = require('async');
         var moment = require('moment');
@@ -253,7 +267,7 @@ module.exports = (log, oracle) => {
     };
 
     router.post('/liquidacion', validatePayment, addPayment);
-    router.post('/pasavante', validatePasavante, addPasavante);
+    router.post('/pasavante', validatePasavante, validateMinRate, addPasavante);
     router.put('/pasavante/:put/:id', putPasavante);
     router.get('/', getAll);
 
