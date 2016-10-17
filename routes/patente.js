@@ -78,6 +78,20 @@ module.exports = (log, oracle) => {
         }
     };
 
+    let validateMinRate = (req, res, next) => {
+        var patenteBody = req.body;
+
+        patente.minRateControl(patenteBody)
+            .then( () => {
+                next();
+            })
+            .catch(err => {
+                res.status(400).send({
+                    status: "ERROR",
+                    message: err.message});
+            })
+    };
+
     let addPayment = (req, res) => {
         var paymentBody = req.body;
         var Patente = require('../lib/patente.js');
@@ -228,8 +242,8 @@ module.exports = (log, oracle) => {
     };
 
     router.post('/liquidacion', validatePayment, addPayment);
-    router.post('/patente', validatePatente, addPatente);
-    router.put('/patente/:put/:id', putPatente);
+    router.post('/patente', validatePatente, validateMinRate, addPatente);
+    router.put('/patente/:put/:id', validateMinRate, putPatente);
     router.get('/', getAll);
 
     return router;
