@@ -268,7 +268,7 @@ module.exports = (log, oracle) => {
 
     router.post('/liquidacion', validatePayment, addPayment);
     router.post('/pasavante', validatePasavante, validateMinRate, addPasavante);
-    router.put('/pasavante/:put/:id', putPasavante);
+    router.put('/pasavante/:put/:id', validateMinRate, putPasavante);
     router.get('/', getAll);
 
     return router;
