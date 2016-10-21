@@ -253,8 +253,8 @@ module.exports = (log, oracle) => {
 
         if (put==='disable') {
             prom = pasavante.disable(pasavanteId);
-        } else if (put==='dates') {
-            prom = pasavante.setDates(params);
+        } else if (put==='update') {
+            prom = pasavante.update(params);
         }
 
         prom.then(data => {

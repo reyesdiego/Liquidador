@@ -216,8 +216,8 @@ module.exports = (log, oracle) => {
 
         if (put==='disable') {
             prom = patente.disable(patenteId);
-        } else if (put==='dates') {
-            prom = patente.setDates(params);
+        } else if (put==='update') {
+            prom = patente.update(params);
         }
 
         prom.then(data => {
