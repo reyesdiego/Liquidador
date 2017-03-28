@@ -4,8 +4,6 @@
 'use strict';
 
 var oracledb = require('oracledb'),
-    //Promise = require('es6-promise').Promise,
-    //Promise = require('bluebird'),
     async = require('async'),
     pool,
     buildupScripts = [],
@@ -16,6 +14,7 @@ module.exports.oracledb = oracledb;
 
 function createPool(config) {
     return new Promise((resolve, reject) => {
+        oracledb.maxRows = 5000;
         oracledb.createPool(
             config,
             (err, p) => {
@@ -142,7 +141,8 @@ function releaseConnection(connection) {
 module.exports.releaseConnection = releaseConnection;
 
 function simpleExecute(sql, bindParams, options) {
-    options = options || {autoCommit: false};
+    options = options || {autoCommit: false, outFormat: oracledb.OBJECT};
+    bindParams = bindParams || [];
 
     return new Promise((resolve, reject) => {
         getConnection()
