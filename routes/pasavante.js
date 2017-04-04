@@ -182,7 +182,9 @@ module.exports = (log, oracle) => {
                             id_tarifa: rate.ID_TARIFA,
                             unitario: rate.VALOR_TARIFA,
                             cantidad1: paymentBody.buque_trn,
-                            cantidad2: null
+                            cantidad2: null,
+                            cotizacion_fecha: rate.FECHA_TARIFA,
+                            cotizacion_tarifa: rate.VALOR_TARIFA
                         }));
 
                         liq_header.detail = liq_detail;
