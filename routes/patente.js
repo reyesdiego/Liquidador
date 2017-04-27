@@ -89,7 +89,7 @@ module.exports = (log, oracle) => {
                 res.status(400).send({
                     status: "ERROR",
                     message: err.message});
-            })
+            });
     };
 
     let addPayment = (req, res) => {
@@ -130,27 +130,28 @@ module.exports = (log, oracle) => {
                         estado: 9
                     };
 
-                    var total = Enumerable.from(rates)
+                    var total = 0;
+                    var totalOtras = Enumerable.from(rates)
                             .where(x=>(x.MINIMO===0))
                             .select(x=> (paymentBody.buque_trn * x.VALOR_TARIFA))
                             .sum('x=>x');
 
                     var minimo = Enumerable.from(rates)
-                        .where(x=>(x.MINIMO===1))
+                        .where(x=>(x.MINIMO>1))
                         .toArray();
                     if (minimo.length>0) {
                         minimo = minimo[0];
 
                         if (minimo.VALOR_TARIFA > total) {
-                            minimo.VALOR_TARIFA = minimo.VALOR_TARIFA - total;
-                            total += minimo.VALOR_TARIFA;
+                            minimo.VALOR_TARIFA = minimo.MINIMO - totalOtras;
+                            total += totalOtras + minimo.VALOR_TARIFA;
                         }
                     }
 
                     let liq_detail = rates.map(rate => {
 
                         var result = {
-                            id_tarifa: rate.ID_TARIFA,
+                            id_tarifa: rate.CODIGO_TARIFA,
                             unitario: rate.VALOR_TARIFA,
                             cantidad1: paymentBody.buque_trn,
                             cantidad2: null,
@@ -221,6 +222,7 @@ module.exports = (log, oracle) => {
         }
 
         prom.then(data => {
+                log.logger.info("UPDATE Patente %j, param: %j", data, params);
                 res.status(200).send(data);
             })
             .catch(err => {
