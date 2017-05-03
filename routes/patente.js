@@ -78,6 +78,10 @@ module.exports = (log, oracle) => {
         }
     };
 
+    /**
+     * Validador. La Patente no puede tener más de una Tarifa mínima en su configuración.
+     * @constructor
+     */
     let validateMinRate = (req, res, next) => {
         var patenteBody = req.body;
 
@@ -130,36 +134,44 @@ module.exports = (log, oracle) => {
                         estado: 9
                     };
 
+                    /** Cuando MODO es 0 la Tarifa se multiplica por el TRN, cuando es 1 es el valor de la Tarifa por lo tanto se multiplica por 1
+                     * */
                     var total = 0;
                     var totalOtras = Enumerable.from(rates)
-                            .where(x=>(x.MINIMO===0))
-                            .select(x=> (paymentBody.buque_trn * x.VALOR_TARIFA))
-                            .sum('x=>x');
+                            .where(x =>(x.MINIMO===0))
+                            .select(x => {
+                            return ((x.MODO === 0) ? paymentBody.buque_trn : 1) * x.VALOR_TARIFA;
+                            })
+                            .sum(x => x);
 
+                    total = totalOtras;
+
+                    /** Cuando tiene Tarifa mínica agrega un item con la misma usando como valor la difencia para llegar al mínimo.
+                     * En caso que supere el mínimo la Tarifa mínima es eliminada.
+                     * */
                     var minimo = Enumerable.from(rates)
                         .where(x=>(x.MINIMO>1))
                         .toArray();
                     if (minimo.length>0) {
                         minimo = minimo[0];
 
-                        if (minimo.VALOR_TARIFA > total) {
+                        if (minimo.MINIMO > totalOtras) {
                             minimo.VALOR_TARIFA = minimo.MINIMO - totalOtras;
-                            total += totalOtras + minimo.VALOR_TARIFA;
+                            total += minimo.VALOR_TARIFA;
+                        } else {
+                            let dic = Enumerable.from(rates).toDictionary();
+                            dic.remove(Enumerable.from(rates).single(s => s.ID_TARIFA === minimo.ID_TARIFA));
+                            rates = dic.toEnumerable().select(s => s.key).toArray();
                         }
                     }
 
-                    let liq_detail = rates.map(rate => {
-
-                        var result = {
-                            id_tarifa: rate.CODIGO_TARIFA,
-                            unitario: rate.VALOR_TARIFA,
-                            cantidad1: paymentBody.buque_trn,
-                            cantidad2: null,
-                            cotizacion_fecha: rate.FECHA_TARIFA,
-                            cotizacion_tarifa: rate.VALOR_TARIFA
-                        };
-                        return result;
-                    });
+                    let liq_detail = rates.map(rate => ({
+                        id_tarifa: rate.CODIGO_TARIFA,
+                        unitario: rate.VALOR_TARIFA,
+                        cantidad1: ((rate.MODO === 0 && rate.MINIMO === 0) ? paymentBody.buque_trn : 1),
+                        cantidad2: null,
+                        cotizacion_fecha: rate.FECHA_TARIFA,
+                        cotizacion_tarifa: rate.VALOR_TARIFA}));
 
                     liq_header.detail = liq_detail;
 
